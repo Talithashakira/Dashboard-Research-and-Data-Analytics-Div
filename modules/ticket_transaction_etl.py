@@ -1,9 +1,19 @@
 import pandas as pd
-from modules.data_cleaning import clean_empty_rows
+from utils.data_loading import load_csv
+from utils.preprocessing import convert_numeric
+from utils.data_cleaning import (
+    clean_empty_rows, 
+    drop_unused_columns, 
+    convert_to_datetime, 
+    split_multi_items, 
+    strip_and_explode
+)
 
 def load_and_clean_data(file: str) -> pd.DataFrame:
-    df = pd.read_csv(file)
+    # 1. Load
+    df = load_csv(file)
 
+    # 2. Drop kolom tidak perlu
     cols_to_drop = [
         "Settlement Paid Timestamp",
         "Payment Type",
@@ -13,16 +23,12 @@ def load_and_clean_data(file: str) -> pd.DataFrame:
         "Biaya",
         "Total Paid",
     ]
+    df = drop_unused_columns(df, cols_to_drop)
 
-    df = df.drop(columns=cols_to_drop, errors="ignore")
+    # 3. Convert ke datetime
+    df = convert_to_datetime(df, ["Tgl Transaksi", "Tgl Kunjungan"])
 
-    # Konversi tanggal
-    for col in ["Tgl Transaksi", "Tgl Kunjungan"]:
-        if col in df.columns:
-            df[col] = pd.to_datetime(df[col], errors="coerce")
-
-
-    # Hitung total per transaksi
+    # 4. Hitung total per transaksi (sebelum explode)
     if "Ticket Purchased" in df.columns and "Ticket Price" in df.columns:
         df["Total Payment Transaction"] = df.apply(
             lambda x: sum(
@@ -36,29 +42,20 @@ def load_and_clean_data(file: str) -> pd.DataFrame:
             lambda x: sum(pd.to_numeric(i, errors="coerce") for i in str(x).split(";"))
         )
 
-    # Multi-item split
+    # 5. Split multi-item kolom
     multi_item_cols = ["Ticket Group", "Ticket Purchased", "Ticket Detail", "Ticket Price"]
-    for col in multi_item_cols:
-        if col in df.columns:
-            df[col] = df[col].astype(str).str.split(";")
-    
-    # Cleaning tambahan
+    df = split_multi_items(df, multi_item_cols)
+
+    # 6. Bersihkan dan explode
     df = clean_empty_rows(df)
-    df = df.explode(multi_item_cols)
+    df = strip_and_explode(df, multi_item_cols)
 
-    for col in multi_item_cols:
-        if col in df.columns:
-            df[col] = df[col].astype(str).str.strip()
+    # 7. Konversi numerik
+    df = convert_numeric(df, ["Ticket Purchased", "Ticket Price"])
 
-    # Konversi numerik
-    numeric_cols = ["Ticket Purchased", "Ticket Price"]
-    for col in numeric_cols:
-        if col in df.columns:
-            df[col] = pd.to_numeric(df[col], errors="coerce")
-
-    # Hitung ulang total per item
+    # 8. Hitung ulang total per item (setelah explode)
     if "Ticket Purchased" in df.columns and "Ticket Price" in df.columns:
         df["Total Payment"] = df["Ticket Purchased"] * df["Ticket Price"]
         df["Total Ticket Purchase"] = df["Ticket Purchased"]
-    
+
     return df

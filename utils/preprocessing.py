@@ -1,3 +1,5 @@
+import pandas as pd
+
 def convert_numeric(df: pd.DataFrame, numeric_cols: list) -> pd.DataFrame:
     for col in numeric_cols:
         if col in df.columns:
