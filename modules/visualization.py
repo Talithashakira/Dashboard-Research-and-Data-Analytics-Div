@@ -1,9 +1,10 @@
 import streamlit as st
 import pandas as pd
-import streamlit as st
-import pandas as pd
 import altair as alt
 
+from ui.styles import BRAND_COLORS
+from ui.components import branded_metric
+from utils.helpers import format_rupiah
 
 def show_summary_cards(df):
     col1, col2, col3 = st.columns(3)
@@ -45,15 +46,8 @@ def show_summary_cards(df):
 def show_trend_payment(df_filtered):
     """Trend berdasarkan Total Payment per Unit"""
 
-    # Mapping warna unit
-    unit_colors = {
-        "Ancol": "#0033A0",
-        "Dufan Ancol": "#E0004D",
-        "Atlantis Ancol": "#5C068C",
-        "Sea World Ancol": "#006EB3",
-        "Samudra Ancol": "#00A497",
-        "Jakarta Bird Land Ancol": "#F68D2E"
-    }
+   # Ambil warna brand utama (500)
+    unit_colors = {unit: color[500] for unit, color in BRAND_COLORS.items()}
 
     df_filtered["Tgl Transaksi"] = pd.to_datetime(df_filtered["Tgl Transaksi"])
     df_filtered["weekday"] = df_filtered["Tgl Transaksi"].dt.dayofweek
@@ -93,15 +87,8 @@ def show_trend_payment(df_filtered):
 def show_trend_purchased(df_filtered):
     """Trend berdasarkan Ticket Purchased per Unit"""
 
-    # Mapping warna unit
-    unit_colors = {
-        "Ancol": "#0033A0",
-        "Dufan Ancol": "#E0004D",
-        "Atlantis Ancol": "#5C068C",
-        "Sea World Ancol": "#006EB3",
-        "Samudra Ancol": "#00A497",
-        "Jakarta Bird Land Ancol": "#F68D2E"
-    }
+    # Ambil warna brand utama (500)
+    unit_colors = {unit: color[500] for unit, color in BRAND_COLORS.items()}
 
     df_filtered["Tgl Transaksi"] = pd.to_datetime(df_filtered["Tgl Transaksi"])
     df_filtered["weekday"] = df_filtered["Tgl Transaksi"].dt.dayofweek
@@ -149,15 +136,6 @@ def show_top5_payment(df_filtered):
         .nlargest(5)
         .reset_index()
     )
-
-    # Fungsi format Rupiah ke jt/M
-    def format_rupiah(x):
-        if x >= 1_000_000_000:
-            return f"Rp {x/1_000_000_000:.1f}M"
-        elif x >= 1_000_000:
-            return f"Rp {x/1_000_000:.1f}jt"
-        else:
-            return f"Rp {x:,.0f}"
 
     top5_payment["label"] = top5_payment["Total Payment"].apply(format_rupiah)
 
@@ -248,85 +226,19 @@ def show_heatmap_calendar(df_filtered: pd.DataFrame):
 
     return heatmap
 
-def show_total_payment_per_unit(df_filtered: pd.DataFrame):
-    """
-    Menampilkan custom scorecard Total Payment per Unit (Ticket Group)
-    dengan warna background (50), border (500), dan rounded.
-    """
-    if "Ticket Group" not in df_filtered.columns or "Total Payment" not in df_filtered.columns:
-        st.warning("Kolom 'Ticket Group' atau 'Total Payment' tidak ditemukan di dataframe.")
-        return
-
-    # Mapping warna per unit
-    unit_colors = {
-        "Ancol": {"fill": "#C9DAFF", "border": "#0033A0"},
-        "Dufan": {"fill": "#FCE5ED", "border": "#E0004D"},
-        "Sea World": {"fill": "#C6E4F7", "border": "#006EB3"},
-        "Atlantis": {"fill": "#D8ACF1", "border": "#5C068C"},
-        "Samudra Ancol": {"fill": "#B8F6F1", "border": "#00A497"},
-        "Jakarta Birdland": {"fill": "#FEF4EA", "border": "#F68D2E"},
-    }
-
-    # Hitung total payment per unit
-    total_payment_unit = (
+def show_total_payment_per_unit(df_filtered):
+    total_payment_per_unit = (
         df_filtered.groupby("Ticket Group")["Total Payment"]
         .sum()
         .reset_index()
     )
 
-    # Format Rupiah singkat
-    def format_rupiah(x):
-        if x >= 1_000_000_000:
-            return f"Rp {x/1_000_000_000:.1f}M"
-        elif x >= 1_000_000:
-            return f"Rp {x/1_000_000:.1f}jt"
-        else:
-            return f"Rp {x:,.0f}"
+    cols = st.columns(len(total_payment_per_unit))
 
-    total_payment_unit["Total Payment Formatted"] = total_payment_unit["Total Payment"].apply(format_rupiah)
-
-    # Bikin kolom horizontal
-    n_cols = len(total_payment_unit)
-    cols = st.columns(n_cols)
-
-    # Render custom card pakai HTML
-    for i, row in total_payment_unit.iterrows():
+    for  i, row in total_payment_per_unit.iterrows():
         unit = row["Ticket Group"]
-        value = row["Total Payment Formatted"]
-        colors = unit_colors.get(unit, {"fill": "#f0f0f0", "border": "#333"})
+        value = format_rupiah(row["Total Payment"])
+        label = f"{row['Ticket Group']}"
 
-        card_html = f"""
-        <style>
-            .custom-card-container {{
-                background-color: var(--fill-color);
-                border: 2px solid var(--border-color);
-                border-radius: 16px;
-                padding: 16px;
-                text-align: center;
-                font-family: Arial, sans-serif;
-                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-                transition: transform 0.2s;
-            }}
-            .custom-card-container:hover {{
-                transform: translateY(-5px);
-            }}
-            .custom-card-container h4 {{
-                margin: 0;
-                color: var(--border-color);
-            }}
-            .custom-card-container p {{
-                margin: 8px 0 0;
-                font-size: 20px;
-                font-weight: bold;
-                color: var(--border-color);
-            }}
-        </style>
-        <div class="custom-card-container" style="
-            --fill-color: {colors['fill']};
-            --border-color: {colors['border']};
-            ">
-            <h4>{unit}</h4>
-            <p>{value}</p>
-        </div>
-        """
-        cols[i].markdown(card_html, unsafe_allow_html=True)
+        with cols[i]:
+            branded_metric(label, value, unit)
