@@ -12,6 +12,7 @@ from modules.visualization import (
     show_top5_purchased,
     show_heatmap_calendar,
     show_total_payment_per_unit,
+    show_customer_segmentation,
 )
 from utils.ui_utils import render_aggrid, download_csv_button
 
@@ -62,6 +63,9 @@ if uploaded_file is not None:
             st.altair_chart(show_trend_purchased(df_filtered), use_container_width=True)
         with col2:
             st.altair_chart(show_top5_purchased(df_filtered), use_container_width=True)
+
+        # 🔹 Customer Segmentation
+        show_customer_segmentation(df_filtered)
 
         # 🔹 Heatmap Kunjungan per Hari
         st.altair_chart(show_heatmap_calendar(df_filtered), use_container_width=True)

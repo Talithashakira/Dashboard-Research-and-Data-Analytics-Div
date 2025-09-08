@@ -242,3 +242,67 @@ def show_total_payment_per_unit(df_filtered):
 
         with cols[i]:
             branded_metric(label, value, unit)
+
+def show_customer_segmentation(df_filtered):
+    promo_tickets = [
+        "Tiket Free Kendaraan Listrik - Mobil",
+        "Tiket Free Kendaraan Listrik - Motor"
+    ]
+
+    # 1️⃣ Cari transaksi yang hanya berisi tiket promo
+    df_txn_tickets = df_filtered.groupby("No Transaksi")["Ticket Detail"].unique().reset_index()
+    df_txn_tickets["is_promo_only"] = df_txn_tickets["Ticket Detail"].apply(
+        lambda tickets: set(tickets).issubset(set(promo_tickets))
+    )
+
+    # 2️⃣ Ambil transaksi valid (bukan promo-only)
+    valid_txn = df_txn_tickets[df_txn_tickets["is_promo_only"] == False]["No Transaksi"]
+    df_filtered = df_filtered[df_filtered["No Transaksi"].isin(valid_txn)]
+
+    # 3️⃣ Balikin ke level transaksi (1 row per transaksi)
+    df_txn = df_filtered.groupby(["No Transaksi", "Attendee Email", "Attendee Phone"]) \
+               .agg({"Total Payment Transaction": "sum"}) \
+               .reset_index()
+
+    # 4️⃣ Hitung transaksi per customer
+    buyer_counts = df_txn.groupby("Attendee Email")["No Transaksi"].nunique().reset_index()
+    buyer_counts.columns = ["Attendee Email", "Transaction Count"]
+
+    # 5️⃣ Segmentasi
+    repeat_buyers = buyer_counts[buyer_counts["Transaction Count"] > 1].shape[0]
+    one_time_buyers = buyer_counts[buyer_counts["Transaction Count"] == 1].shape[0]
+    unique_buyers = buyer_counts.shape[0]
+
+    st.subheader("👥 Customer Segmentation")
+
+    col1, col2, col3 = st.columns(3)
+    with col1: st.metric("👤 Unique Buyers", f"{unique_buyers:,}")
+    with col2: st.metric("🆕 One-Time Buyers", f"{one_time_buyers:,}")
+    with col3: st.metric("🔁 Repeat Buyers", f"{repeat_buyers:,}")
+
+    # 6️⃣ Layout pie chart + tabel dalam satu row
+    col_left, col_right = st.columns([1, 2])  
+
+    with col_left:
+        buyer_segments = pd.DataFrame({
+            "Segment": ["One-Time Buyers", "Repeat Buyers"],
+            "Count": [one_time_buyers, repeat_buyers]
+        })
+        pie = (
+            alt.Chart(buyer_segments)
+            .mark_arc()
+            .encode(
+                theta="Count:Q", color="Segment:N", tooltip=["Segment", "Count"]
+            )  
+        )
+        st.markdown("###### **Distribusi Repeat Buyers**")
+        st.altair_chart(pie, use_container_width=True)
+
+    with col_right:
+        repeat_table = (
+            buyer_counts[buyer_counts["Transaction Count"] > 1] \
+            .sort_values("Transaction Count", ascending=False) \
+            .reset_index(drop=True)
+        )
+        st.markdown("###### **Daftar Repeat Buyers**")
+        st.dataframe(repeat_table, use_container_width=True)
