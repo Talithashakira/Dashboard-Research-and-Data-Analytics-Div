@@ -3,7 +3,7 @@ import pandas as pd
 import altair as alt
 
 from ui.styles import BRAND_COLORS
-from ui.components import branded_metric
+from ui.components import branded_metric, custom_metric
 from utils.helpers import format_rupiah
 
 def show_summary_cards(df):
@@ -12,12 +12,12 @@ def show_summary_cards(df):
     # 🎟️ Total Ticket Purchased
     with col1:
         total_tickets = df["Ticket Purchased"].sum()
-        st.metric("🎟️ Total Ticket Purchased", f"{total_tickets:,}")
+        custom_metric("🎟️ Total Ticket Purchased", f"{total_tickets:,}")
 
     # 💰 Total Payment
     with col2:
         total_payment = df["Total Payment"].sum()
-        st.metric("💰 Total Payment", f"Rp {total_payment:,.0f}")
+        custom_metric("💰 Total Payment", f"Rp {total_payment:,.0f}")
 
     # 📈 Daily Growth (%)
     with col3:
@@ -37,7 +37,7 @@ def show_summary_cards(df):
         if pd.isna(avg_growth):
             avg_growth = 0
 
-        st.metric("📈 Rata-rata Daily Growth", f"{avg_growth:.2f} %")
+        custom_metric("📈 Rata-rata Daily Growth", f"{avg_growth:.2f} %")
 
 
 # =====================
@@ -276,9 +276,9 @@ def show_customer_segmentation(df_filtered):
     st.subheader("👥 Customer Segmentation")
 
     col1, col2, col3 = st.columns(3)
-    with col1: st.metric("👤 Unique Buyers", f"{unique_buyers:,}")
-    with col2: st.metric("🆕 One-Time Buyers", f"{one_time_buyers:,}")
-    with col3: st.metric("🔁 Repeat Buyers", f"{repeat_buyers:,}")
+    with col1: custom_metric("👤 Unique Buyers", f"{unique_buyers:,}")
+    with col2: custom_metric("🆕 One-Time Buyers", f"{one_time_buyers:,}")
+    with col3: custom_metric("🔁 Repeat Buyers", f"{repeat_buyers:,}")
 
     # 6️⃣ Layout pie chart + tabel dalam satu row
     col_left, col_right = st.columns([1, 2])  

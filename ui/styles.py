@@ -24,3 +24,8 @@ BRAND_COLORS = {
         500: "#F68D2E",
     },
 }
+
+GRAY_COLORS = {
+    50: "#F7F8FA",
+    500: "#B0BDD1",
+}
