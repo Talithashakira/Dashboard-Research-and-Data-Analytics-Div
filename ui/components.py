@@ -48,8 +48,8 @@ def sentiment_metric(label, value, status):
         text-align: center;
         margin-bottom: 16px;
         ">
-        <div style="font-size:14px; color:#31333F; margin-bottom:4px;">{label}</div>
-        <div style="font-size:28px; font-weight:600; color:{color};">{value}</div>
+        <div style="font-size:16px; color:#31333F; margin-bottom:4px;">{label}</div>
+        <div style="font-size:32px; font-weight:600; color:{color};">{value}</div>
     </div>
     """
     st.markdown(html, unsafe_allow_html=True)

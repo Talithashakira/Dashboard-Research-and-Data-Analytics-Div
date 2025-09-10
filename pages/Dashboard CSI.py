@@ -3,6 +3,7 @@ import pandas as pd
 
 from modules.csi_etl import load_and_clean_data
 from ui.components import sentiment_metric, custom_metric
+from utils.helpers import get_top_tags
 
 st.set_page_config(
     page_title="Dashboard CSI",
@@ -95,11 +96,21 @@ if uploaded_file is not None:
         col1, col2, col3 = st.columns(3)
 
         with col1:
-            sentiment_metric("😊 Positive", sentiment_counts.get("Positive", 0), "Positive")
+            sentiment_metric("😊 Positive Sentiment", sentiment_counts.get("Positive", 0), "Positive")
         with col2:
-            sentiment_metric("😐 Neutral", sentiment_counts.get("Neutral", 0), "Neutral")
+            sentiment_metric("😐 Neutral Sentiment", sentiment_counts.get("Neutral", 0), "Neutral")
         with col3:
-            sentiment_metric("😡 Negative", sentiment_counts.get("Negative", 0), "Negative")
+            sentiment_metric("😡 Negative Sentiment", sentiment_counts.get("Negative", 0), "Negative")
+
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.subheader("🏷️ Top Positive Tags")
+            st.bar_chart(get_top_tags(df_filtered, "Positive"))
+        
+        with col2:
+            st.subheader("🏷️ Top Negative Tags")
+            st.bar_chart(get_top_tags(df_filtered, "Negative"))
     
     else:
         st.info("📌 Silakan pilih unit rekreasi untuk menampilkan laporan.")
