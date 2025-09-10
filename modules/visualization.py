@@ -153,7 +153,7 @@ def show_top5_payment(df_filtered):
     text = base.mark_text(
         align='left',
         baseline='middle',
-        dx=3  # jarak sedikit dari ujung bar
+        dx=3  
     ).encode(
         text="label:N"
     )

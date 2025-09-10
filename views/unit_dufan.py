@@ -17,7 +17,7 @@ def show():
     # 🔹 Filter berdasarkan Ticket Group
     df_unit = df[df["Ticket Group"] == "Dufan Ancol"]
 
-    st.subheader("📌 Unit Dufan")
+    st.header("Unit Dufan", divider="gray")
 
     # Filter tanggal
     min_date, max_date = df_unit["Tgl Transaksi"].min(), df_unit["Tgl Transaksi"].max()

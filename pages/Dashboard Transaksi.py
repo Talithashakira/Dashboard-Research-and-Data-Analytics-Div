@@ -16,6 +16,11 @@ from modules.visualization import (
 )
 from utils.ui_utils import render_aggrid, download_csv_button
 
+st.set_page_config(
+    page_title="Dashboard Transaksi",
+     layout="wide",
+)
+
 st.title("📊 Dashboard Monthly Transaction Report")
 
 # Upload CSV

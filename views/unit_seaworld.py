@@ -15,7 +15,7 @@ def show():
     df = st.session_state.df
     df_unit = df[df["Ticket Group"] == "Sea World Ancol"]
 
-    st.subheader("📌 Unit Sea World")
+    st.header("Unit Sea World", divider="gray")
 
     min_date, max_date = df_unit["Tgl Transaksi"].min(), df_unit["Tgl Transaksi"].max()
     start_date, end_date = st.date_input(
