@@ -29,3 +29,18 @@ GRAY_COLORS = {
     50: "#F7F8FA",
     500: "#B0BDD1",
 }
+
+STATUS_COLORS = {
+    "Positive": {
+        50: "#EAF6EE",
+        500: "#30A756",
+    },
+    "Neutral": {
+        50: "#FFFAEB",
+        500: "#FDB022",
+    },
+    "Negative": {
+        50: "#F5D1D1",
+        500: "#CF1717",
+    },
+}

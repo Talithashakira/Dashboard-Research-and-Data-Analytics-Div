@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 
 from modules.csi_etl import load_and_clean_data
+from ui.components import sentiment_metric, custom_metric
 
 st.set_page_config(
     page_title="Dashboard CSI",
@@ -18,48 +19,90 @@ if uploaded_file is not None:
 
     df = st.session_state.df
 
-    # ===============================
-    # 1. CSI (Customer Satisfaction Index)
-    # ===============================
-    st.subheader("⭐ Customer Satisfaction Index (CSI)")
+    unit_options = [
+        "Taman Pantai Ancol",
+        "Dunia Fantasi",
+        "Atlantis",
+        "Samudra",
+        "Sea World",
+        "Jakarta Birdland",
+        "Putri Duyung",
+    ]
 
-    col1, col2 = st.columns([2, 1])
+    selected_unit = st.selectbox("Pilih Unit:", [""] + unit_options)
 
-    with col1:
-        csi_counts = df["CSI"].value_counts().sort_index()
-        st.bar_chart(csi_counts)
+    if selected_unit:
+        st.header(f"Report {selected_unit}", divider="gray")
 
-    with col2:
-        avg_csi = df["Numeric_CSI"].mean()
-        st.metric("📌 Rata-rata CSI", f"{avg_csi:.2f}")
 
-    # ===============================
-    # 2. CLI (Customer Loyalty Index)
-    # ===============================
-    st.subheader("🔁 Customer Loyalty Index (CLI)")
+        # ===============================
+        # 🔎 Filter Periode Survey
+        # ===============================
+        st.subheader("📅 Filter Periode Survey")
 
-    col3, col4 = st.columns([2, 1])
+        available_periods = (
+            df["Camp Sent On Date Time"]
+            .dt.strftime("%d-%m-%Y")
+            .dropna()
+            .unique()
+        )
 
-    with col3:
-        cli_counts = df["Numeric_Will Return"].value_counts(dropna=True).sort_index()
-        st.bar_chart(cli_counts)
+        available_periods = sorted(available_periods)
 
-    with col4:
-        avg_cli = df["Numeric_Will Return"].mean()
-        st.metric("📌 Rata-rata CLI", f"{avg_cli:.2f}")
+        selected_period = st.multiselect(
+            "Pilih Periode Survey",
+            options=available_periods,
+            default=available_periods
+        )
+        
+        df_filtered = df[df["Camp Sent On Date Time"].dt.strftime("%d-%m-%Y").isin(selected_period)]
 
-    # ===============================
-    # 3. Sentiment Scorecards
-    # ===============================
-    st.subheader("💬 Sentiment Analysis")
+        col1, col2 = st.columns([2, 2])
 
-    sentiment_counts = df["Sentiment_Primary Reason"].value_counts()
+        # ===============================
+        # 1. CSI (Customer Satisfaction Index)
+        # ===============================
 
-    col5, col6, col7 = st.columns(3)
+        with col1:
+            st.subheader("⭐ Customer Satisfaction Index (CSI)")
 
-    col5.metric("😊 Positive", sentiment_counts.get("Positive", 0))
-    col6.metric("😐 Neutral", sentiment_counts.get("Neutral", 0))
-    col7.metric("😡 Negative", sentiment_counts.get("Negative", 0))
+            avg_csi = df_filtered["Numeric_CSI"].mean()
+            custom_metric("📌 Rata-rata Customer Satisfaction Index", f"{avg_csi:.2f}")
+
+            csi_counts = df_filtered["Numeric_CSI"].value_counts().sort_index()
+            st.bar_chart(csi_counts)
+
+        # ===============================
+        # 2. CLI (Customer Loyalty Index)
+        # ===============================
+
+        with col2:
+            st.subheader("🔁 Customer Loyalty Index (CLI)")
+
+            avg_cli = df_filtered["Numeric_Will Return"].mean()
+            custom_metric("📌 Rata-rata Customer Loyalty Index", f"{avg_cli:.2f}")
+
+            cli_counts = df_filtered["Numeric_Will Return"].value_counts(dropna=True).sort_index()
+            st.bar_chart(cli_counts)
+
+        # ===============================
+        # 3. Sentiment Scorecards
+        # ===============================
+        st.subheader("💬 Sentiment Analysis")
+
+        sentiment_counts = df_filtered["Sentiment_Primary Reason"].value_counts()
+
+        col1, col2, col3 = st.columns(3)
+
+        with col1:
+            sentiment_metric("😊 Positive", sentiment_counts.get("Positive", 0), "Positive")
+        with col2:
+            sentiment_metric("😐 Neutral", sentiment_counts.get("Neutral", 0), "Neutral")
+        with col3:
+            sentiment_metric("😡 Negative", sentiment_counts.get("Negative", 0), "Negative")
+    
+    else:
+        st.info("📌 Silakan pilih unit rekreasi untuk menampilkan laporan.")
 
 else:
     st.info("📂 Silakan upload file CSV terlebih dahulu untuk melihat dashboard.")
