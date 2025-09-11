@@ -1,9 +1,10 @@
 import streamlit as st
 import pandas as pd
+import plotly.express as px
 
 from modules.csi_etl import load_and_clean_data
 from ui.components import sentiment_metric, custom_metric
-from utils.helpers import get_top_tags
+from utils.helpers import get_tags_counts
 
 st.set_page_config(
     page_title="Dashboard CSI",
@@ -102,16 +103,94 @@ if uploaded_file is not None:
         with col3:
             sentiment_metric("😡 Negative Sentiment", sentiment_counts.get("Negative", 0), "Negative")
 
-        col1, col2 = st.columns(2)
-        
+
+        st.markdown("#### **Positive Sentiment Tags**")
+        col1, col2, = st.columns([1, 3])
+
         with col1:
-            st.subheader("🏷️ Top Positive Tags")
-            st.bar_chart(get_top_tags(df_filtered, "Positive"))
+            tag_counts_positive = get_tags_counts(df_filtered, "Positive")
+            st.write("**Positive Tags Counts**")
+            st.dataframe(tag_counts_positive, use_container_width=True)
         
         with col2:
-            st.subheader("🏷️ Top Negative Tags")
-            st.bar_chart(get_top_tags(df_filtered, "Negative"))
-    
+            fig = px.treemap(
+                tag_counts_positive,
+                path=["Tag"],
+                values="Count",
+                color="Count",
+                color_continuous_scale="Greens",
+            )
+            st.plotly_chart(fig)
+        
+        df_positive = df_filtered[df_filtered["Sentiment_Primary Reason"] == "Positive"]
+
+        # Ambil semua tag unik
+        all_tags_pos = (
+            df_positive["Tags_Primary Reason"]
+            .dropna()
+            .str.split("|")
+            .explode()
+            .str.strip()
+            .unique()
+        )
+
+        selected_tags_pos = st.multiselect(
+            "Pilih Tags (Positive)",
+            options=sorted(all_tags_pos),
+            default=all_tags_pos  # default semua tampil
+        )
+
+        if selected_tags_pos:
+            df_positive_filtered = df_positive[
+                df_positive["Tags_Primary Reason"].str.contains("|".join(selected_tags_pos), na=False)
+            ][["Primary Reason", "Tags_Primary Reason"]]
+
+            st.dataframe(df_positive_filtered, use_container_width=True)
+
+
+        st.markdown("#### **Negative Sentiment Tags**")
+        col1, col2 = st.columns([1, 3])
+        
+        with col1:
+            tag_counts_negative = get_tags_counts(df_filtered, "Negative")
+            st.write("**Negative Tags Counts**")
+            st.dataframe(tag_counts_negative, use_container_width=True)
+        
+        with col2:
+            fig = px.treemap(
+                tag_counts_negative,
+                path=["Tag"],
+                values="Count",
+                color="Count",
+                color_continuous_scale="Reds",
+            )
+            st.plotly_chart(fig)
+
+        df_negative = df_filtered[df_filtered["Sentiment_Primary Reason"] == "Negative"]
+
+        # Ambil semua tag unik
+        all_tags_neg = (
+            df_negative["Tags_Primary Reason"]
+            .dropna()
+            .str.split("|")
+            .explode()
+            .str.strip()
+            .unique()
+        )
+
+        selected_tags_neg = st.multiselect(
+            "Pilih Tags (Negative)",
+            options=sorted(all_tags_neg),
+            default=all_tags_neg
+        )
+
+        if selected_tags_neg:
+            df_negative_filtered = df_negative[
+                df_negative["Tags_Primary Reason"].str.contains("|".join(selected_tags_neg), na=False)
+            ][["Primary Reason", "Tags_Primary Reason"]]
+
+            st.dataframe(df_negative_filtered, use_container_width=True)
+
     else:
         st.info("📌 Silakan pilih unit rekreasi untuk menampilkan laporan.")
 
