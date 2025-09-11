@@ -1,17 +1,18 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+import altair as alt
 
-from modules.csi_etl import load_and_clean_data
+from modules.customer_survey_etl import load_and_clean_data
 from ui.components import sentiment_metric, custom_metric
-from utils.helpers import get_tags_counts
+from utils.helpers import get_tags_counts, get_tags_sentiment_counts
 
 st.set_page_config(
-    page_title="Dashboard CSI",
+    page_title="Dashboard Customer Experience",
     layout="wide",
 )
 
-st.title("👥 Dashboard CSI Report")
+st.title("👥 Dashboard Customer Experience Report")
 
 uploaded_file = st.file_uploader("Upload CSV Anda", type=["csv"])
 
@@ -62,14 +63,16 @@ if uploaded_file is not None:
         col1, col2 = st.columns([2, 2])
 
         # ===============================
-        # 1. CSI (Customer Satisfaction Index)
+        # 1. CSAT (Customer Satisfaction Score)
         # ===============================
 
         with col1:
-            st.subheader("⭐ Customer Satisfaction Index (CSI)")
+            st.subheader("⭐ Customer Satisfaction Score (CSAT)")
 
-            avg_csi = df_filtered["Numeric_CSI"].mean()
-            custom_metric("📌 Rata-rata Customer Satisfaction Index", f"{avg_csi:.2f}")
+            total_responses = df_filtered["Numeric_CSI"].notna().sum()
+            satisfied_responses = df_filtered[df_filtered["Numeric_CSI"] >= 4].shape[0]
+            csat_score = (satisfied_responses / total_responses) * 100 if total_responses > 0 else 0
+            custom_metric("📌 Customer Satisfaction Score", f"{csat_score:.2f}%")
 
             csi_counts = df_filtered["Numeric_CSI"].value_counts().sort_index()
             st.bar_chart(csi_counts)
@@ -87,6 +90,8 @@ if uploaded_file is not None:
             cli_counts = df_filtered["Numeric_Will Return"].value_counts(dropna=True).sort_index()
             st.bar_chart(cli_counts)
 
+        st.divider()
+
         # ===============================
         # 3. Sentiment Scorecards
         # ===============================
@@ -103,7 +108,11 @@ if uploaded_file is not None:
         with col3:
             sentiment_metric("😡 Negative Sentiment", sentiment_counts.get("Negative", 0), "Negative")
 
+        # ===============================
+        # 4. Sentiment Tags
+        # ===============================
 
+        # Positive Sentiment Tags
         st.markdown("#### **Positive Sentiment Tags**")
         col1, col2, = st.columns([1, 3])
 
@@ -121,6 +130,8 @@ if uploaded_file is not None:
                 color_continuous_scale="Greens",
             )
             st.plotly_chart(fig)
+
+        st.markdown("**Daftar Positive Sentiment**")
         
         df_positive = df_filtered[df_filtered["Sentiment_Primary Reason"] == "Positive"]
 
@@ -135,7 +146,7 @@ if uploaded_file is not None:
         )
 
         selected_tags_pos = st.multiselect(
-            "Pilih Tags (Positive)",
+            "Pilih Tags",
             options=sorted(all_tags_pos),
             default=all_tags_pos  # default semua tampil
         )
@@ -147,6 +158,7 @@ if uploaded_file is not None:
 
             st.dataframe(df_positive_filtered, use_container_width=True)
 
+        # Negative Sentiment Tags
 
         st.markdown("#### **Negative Sentiment Tags**")
         col1, col2 = st.columns([1, 3])
@@ -166,6 +178,8 @@ if uploaded_file is not None:
             )
             st.plotly_chart(fig)
 
+        st.markdown("**Daftar Negative Sentiment**")
+
         df_negative = df_filtered[df_filtered["Sentiment_Primary Reason"] == "Negative"]
 
         # Ambil semua tag unik
@@ -179,7 +193,7 @@ if uploaded_file is not None:
         )
 
         selected_tags_neg = st.multiselect(
-            "Pilih Tags (Negative)",
+            "Pilih Tags",
             options=sorted(all_tags_neg),
             default=all_tags_neg
         )
@@ -190,6 +204,33 @@ if uploaded_file is not None:
             ][["Primary Reason", "Tags_Primary Reason"]]
 
             st.dataframe(df_negative_filtered, use_container_width=True)
+
+        st.markdown("#### **Distribusi Sentiment Berdasarkan Tags**")
+        
+        # Ambil hasil dari fungsi
+        tag_sentiment_counts = get_tags_sentiment_counts(df_filtered)
+
+        # Bikin bar chart horizontal
+        chart = (
+            alt.Chart(tag_sentiment_counts)
+            .mark_bar()
+            .encode(
+                x=alt.X("Count:Q", title="Jumlah"),
+                y=alt.Y("Tags:N", sort="-x", title="Tags"),
+                color=alt.Color(
+                    "Sentiment_Primary Reason:N",
+                    scale=alt.Scale(
+                        domain=["Positive", "Neutral", "Negative"],
+                        range=["#2ecc71", "#f1c40f", "#e74c3c"]
+                    ),
+                    title="Sentiment"
+                ),
+                tooltip=["Tags", "Sentiment_Primary Reason", "Count"]
+            )
+            .properties(width=600, height=400)
+        )
+
+        st.altair_chart(chart, use_container_width=True)
 
     else:
         st.info("📌 Silakan pilih unit rekreasi untuk menampilkan laporan.")
