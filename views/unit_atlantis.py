@@ -12,7 +12,7 @@ from modules.visualization import (
 from utils.ui_utils import render_aggrid, download_csv_button
 
 def show():
-    df = st.session_state.df
+    df = st.session_state.get("df_transaksi")
     df_unit = df[df["Ticket Group"] == "Atlantis Ancol"]
 
     st.header("Unit Atlantis", divider="gray")
