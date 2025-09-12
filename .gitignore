@@ -1,8 +1,19 @@
-__pycache__/
-*.pyc
-*.pyo
+# ==========================
+# Python cache files
+# ==========================
+__pycache__/        
+*.pyc               
+*.pyo               
 
-config.yaml
+# ==========================
+# Virtual environments
+# ==========================
+venv/              
+.venv/              
 
-venv/
-.venv/
+# ==========================
+# Streamlit
+# ==========================
+.streamlit/         
+
+

@@ -1,11 +1,22 @@
+# utils/auth_utils.py
 import streamlit as st
-import yaml
-from yaml.loader import SafeLoader
 import streamlit_authenticator as stauth
 
 def get_authenticator():
-    with open("config.yaml") as file:
-        config = yaml.load(file, Loader=SafeLoader)
+    config = {
+        "credentials": {
+            "usernames": {
+                st.secrets['ADMIN_USER']: {
+                    "password": st.secrets['ADMIN_PASSWORD']
+                }
+            }
+        },
+        "cookie": {
+            "name": st.secrets['COOKIE_NAME'],
+            "key": st.secrets['COOKIE_KEY'],
+            "expiry_days": st.secrets['COOKIE_EXPIRY_DAYS']
+        }
+    }
 
     authenticator = stauth.Authenticate(
         credentials=config["credentials"],
@@ -17,6 +28,9 @@ def get_authenticator():
 
 
 def _hide_sidebar():
+    """
+    Menyembunyikan sidebar Streamlit
+    """
     hide_style = """
         <style>
         [data-testid="stSidebar"] {display: none;}
@@ -25,7 +39,11 @@ def _hide_sidebar():
     """
     st.markdown(hide_style, unsafe_allow_html=True)
 
+
 def _show_sidebar():
+    """
+    Menampilkan sidebar Streamlit
+    """
     show_style = """
         <style>
         [data-testid="stSidebar"] {display: block !important;}
@@ -34,7 +52,12 @@ def _show_sidebar():
     """
     st.markdown(show_style, unsafe_allow_html=True)
 
+
 def check_login(location: str = "unrendered"):
+    """
+    Mengecek status login user.
+    Jika belum login atau salah, otomatis berhenti dan sembunyikan sidebar.
+    """
     authenticator = get_authenticator()
     authenticator.login(location=location)
 
