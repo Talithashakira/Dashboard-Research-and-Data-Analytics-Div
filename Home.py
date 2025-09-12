@@ -1,7 +1,4 @@
 import streamlit as st
-import streamlit_authenticator as stauth
-import yaml
-from yaml.loader import SafeLoader
 from utils.auth_utils import get_authenticator, _hide_sidebar, _show_sidebar
 
 # ===============================
