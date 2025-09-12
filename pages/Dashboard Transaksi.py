@@ -29,13 +29,12 @@ authenticator = check_login()
 st.title("📊 Dashboard Monthly Transaction Report")
 
 # Upload CSV
-uploaded_file = st.file_uploader("Upload CSV Anda", type=["csv"])
+uploaded_file = st.file_uploader("Upload CSV Anda", type=["csv"], key="file_transaksi")
 
 if uploaded_file is not None:
-    if "df" not in st.session_state:
-        st.session_state.df = load_and_clean_data(uploaded_file)
+    st.session_state.df_transaksi = load_and_clean_data(uploaded_file)
 
-    df = st.session_state.df
+    df = st.session_state.get("df_transaksi")   
 
     menu = st.sidebar.selectbox(
         "Pilih Unit",

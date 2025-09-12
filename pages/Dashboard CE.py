@@ -19,13 +19,12 @@ authenticator = check_login()
 # --- Main ---
 st.title("👥 Dashboard Customer Experience Report")
 
-uploaded_file = st.file_uploader("Upload CSV Anda", type=["csv"])
+uploaded_file = st.file_uploader("Upload CSV Anda", type=["csv"], key="file_ce")
 
 if uploaded_file is not None:
-    if "df" not in st.session_state:
-        st.session_state.df = load_and_clean_data(uploaded_file)
+    st.session_state.df_ce = load_and_clean_data(uploaded_file)
 
-    df = st.session_state.df
+    df = st.session_state.get("df_ce")
 
     unit_options = [
         "Taman Pantai Ancol",
