@@ -6,12 +6,17 @@ import altair as alt
 from modules.customer_survey_etl import load_and_clean_data
 from ui.components import sentiment_metric, custom_metric
 from utils.helpers import get_tags_counts, get_tags_sentiment_counts
+from utils.auth_utils import check_login
 
 st.set_page_config(
     page_title="Dashboard Customer Experience",
     layout="wide",
 )
 
+# --- Auth ---
+authenticator = check_login()
+
+# --- Main ---
 st.title("👥 Dashboard Customer Experience Report")
 
 uploaded_file = st.file_uploader("Upload CSV Anda", type=["csv"])

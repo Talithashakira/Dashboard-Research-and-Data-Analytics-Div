@@ -15,12 +15,17 @@ from modules.visualization import (
     show_customer_segmentation,
 )
 from utils.ui_utils import render_aggrid, download_csv_button
+from utils.auth_utils import check_login
 
 st.set_page_config(
     page_title="Dashboard Transaksi",
      layout="wide",
 )
 
+# --- Auth ---
+authenticator = check_login()
+
+# --- Main ---
 st.title("📊 Dashboard Monthly Transaction Report")
 
 # Upload CSV

@@ -1,22 +1,39 @@
 import streamlit as st
+import streamlit_authenticator as stauth
+import yaml
+from yaml.loader import SafeLoader
+from utils.auth_utils import get_authenticator, _hide_sidebar, _show_sidebar
 
-
+# ===============================
+# Config halaman
+# ===============================
 st.set_page_config(
-    page_title="Introduksi",
-     page_icon="📘",
-     layout="wide"
-)
+    page_title="Home", 
+    page_icon="🏠", 
+    layout="wide")
+    
 
-st.title("Selamat Datang di Dashboard Research and Data Analytics 👋")
+authenticator = get_authenticator()
+st.session_state["authenticator"] = authenticator
+authenticator.login(location="main")
 
-st.markdown("""
-## 📖 Introduksi
-Aplikasi ini dibuat untuk mempermudah analisis data transaksi unit rekreasi.
+# ===============================
+# Cek status login & atur sidebar
+# ===============================
+if st.session_state.get("authentication_status"):
+    # === Jika login sukses ===
+    _show_sidebar()
+    st.title("Selamat Datang")
+    st.markdown("#### **Dashboard Research & Data Analytics Division**")
+    st.divider()
+    st.write("Konten dashboard di sini ...")
 
-### 🔎 Alur Penggunaan
-1. Pergi ke halaman **Dashboard** (lihat di sidebar kiri).
-2. Upload file CSV transaksi.
-3. Pilih unit yang ingin dianalisis (Ancol, Dufan, Atlantis, dll).
+elif st.session_state.get("authentication_status") is False:
+    # === Jika login gagal ===
+    _hide_sidebar()
+    st.error("❌ Username atau password salah")
 
-👉 Silakan mulai dengan memilih **Dashboard** pada sidebar.
-""")
+else:
+    # === Jika belum login ===
+    _hide_sidebar()
+    st.warning("Silakan login terlebih dahulu")
