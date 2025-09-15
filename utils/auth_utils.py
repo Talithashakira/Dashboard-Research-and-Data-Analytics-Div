@@ -2,6 +2,8 @@
 import streamlit as st
 import streamlit_authenticator as stauth
 
+from utils.helpers import _hide_sidebar, _show_sidebar
+
 def get_authenticator():
     config = {
         "credentials": {
@@ -27,37 +29,7 @@ def get_authenticator():
     return authenticator
 
 
-def _hide_sidebar():
-    """
-    Menyembunyikan sidebar Streamlit
-    """
-    hide_style = """
-        <style>
-        [data-testid="stSidebar"] {display: none;}
-        button[data-testid="stBaseButton-headerNoPadding"] {display: none;}
-        </style>
-    """
-    st.markdown(hide_style, unsafe_allow_html=True)
-
-
-def _show_sidebar():
-    """
-    Menampilkan sidebar Streamlit
-    """
-    show_style = """
-        <style>
-        [data-testid="stSidebar"] {display: block !important;}
-        button[data-testid="stBaseButton-headerNoPadding"] {display: block !important;}
-        </style>
-    """
-    st.markdown(show_style, unsafe_allow_html=True)
-
-
 def check_login(location: str = "unrendered"):
-    """
-    Mengecek status login user.
-    Jika belum login atau salah, otomatis berhenti dan sembunyikan sidebar.
-    """
     authenticator = get_authenticator()
     authenticator.login(location=location)
 

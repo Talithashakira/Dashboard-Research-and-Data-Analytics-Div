@@ -4,7 +4,7 @@ import pandas as pd
 # Import dari modules
 from modules.ticket_transaction_etl import load_and_clean_data
 from views import unit_ancol as ancol, unit_dufan as dufan, unit_atlantis as atlantis, unit_samudra as samudra, unit_seaworld as seaworld, unit_birdland as birdland
-from modules.visualization import (
+from modules.transaction_visualization import (
     show_summary_cards,
     show_trend_payment,
     show_trend_purchased,
