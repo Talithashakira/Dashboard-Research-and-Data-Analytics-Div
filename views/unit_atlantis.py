@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-from modules.visualization import (
+from modules.transaction_visualization import (
     show_summary_cards,
     show_trend_payment,
     show_trend_purchased,
