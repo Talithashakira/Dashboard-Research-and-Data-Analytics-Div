@@ -11,7 +11,7 @@ st.set_page_config(
 # --- Auth ---
 authenticator = check_login()
 
-st.title("👥 Dashboard Customer Data Extraction")
+st.title("👥 Customer Data Extraction")
 
 uploaded_file = st.file_uploader("Upload CSV Anda", type=["csv"], key="file_customer_data")
 

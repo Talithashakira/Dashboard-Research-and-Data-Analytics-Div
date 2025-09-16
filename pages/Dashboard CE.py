@@ -82,14 +82,14 @@ if uploaded_file is not None:
             st.bar_chart(csi_counts)
 
         # ===============================
-        # 2. CLI (Customer Loyalty Index)
+        # 2. Intent to Return
         # ===============================
 
         with col2:
-            st.subheader("🔁 Customer Loyalty Index (CLI)")
+            st.subheader("🔁 Intent to Return")
 
             avg_cli = df_filtered["Numeric_Will Return"].mean()
-            custom_metric("📌 Rata-rata Customer Loyalty Index", f"{avg_cli:.2f}")
+            custom_metric("📌 Rata-rata Intent to Return", f"{avg_cli:.2f}")
 
             cli_counts = df_filtered["Numeric_Will Return"].value_counts(dropna=True).sort_index()
             st.bar_chart(cli_counts)
