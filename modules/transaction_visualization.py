@@ -21,19 +21,13 @@ def show_summary_cards(df):
 
     # 📈 Daily Growth (%)
     with col3:
-        # Pastikan kolom tanggal dalam datetime
         df["Tgl Transaksi"] = pd.to_datetime(df["Tgl Transaksi"])
-
-        # Agregasi per hari
         daily_sales = df.groupby("Tgl Transaksi")["Ticket Purchased"].sum().sort_index()
 
-        # Hitung pertumbuhan harian (%)
         daily_growth = daily_sales.pct_change() * 100
 
-        # Ambil rata-rata growth (drop NaN hari pertama)
         avg_growth = daily_growth.dropna().mean()
 
-        # Kalau tidak ada data growth
         if pd.isna(avg_growth):
             avg_growth = 0
 
