@@ -1,6 +1,7 @@
 import re
 import pandas as pd
 
+# --- Validasi nomor ponsel Indonesia ---
 _VALID_PREFIXES = (
     "811","812","813","821","822","823","851","852","853","814","815","816",
     "855","856","857","858","895","896","897","898","899","817","818","819",
@@ -32,6 +33,7 @@ def clean_phone(phone):
             return s
     return None
 
+# --- Validasi & normalisasi email ---
 _EMAIL_RE = re.compile(r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$")
 _COMMON_DOMAINS = {
     "gamil.com": "gmail.com",
@@ -61,39 +63,62 @@ def clean_email(email):
         return s
     return None
 
+# --- Daftar unit yang diproses & mapping nama unit dari data produksi ---
 UNITS = [
     "Ancol",
-    "Dufan Ancol",  
+    "Dufan Ancol",
     "Atlantis Ancol",
     "Sea World Ancol",
     "Samudra Ancol",
     "Jakarta Bird Land Ancol",
 ]
 
+# Jika di data produksi namanya beda, mapping-kan ke salah satu UNITS di atas
+UNIT_MAP = {
+    # contoh:
+    "Dunia Fantasi": "Dufan Ancol",
+    "SeaWorld Ancol": "Sea World Ancol",
+    "Birdland": "Jakarta Bird Land Ancol",
+    # tambahkan sesuai kebutuhan
+}
+
+# --- Ticket promosi yang tidak ingin diikutkan ---
 promo_tickets = [
     "Tiket Free Kendaraan Listrik - Mobil",
     "Tiket Free Kendaraan Listrik - Motor",
 ]
 
 def extract_unique_customers(
-    df,
-    unit_col="Ticket Group",
-    ticket_col="Ticket Detail",
-    visit_col="Tgl Kunjungan",
-    visit_fmt="%d/%m/%Y",
+    df: pd.DataFrame,
+    unit_col: str = "Ticket Group",
+    ticket_col: str = "Ticket Detail",
+    visit_col: str = "Tgl Kunjungan",
+    visit_fmt: str = "%d/%m/%Y",
 ):
+    """
+    Menghasilkan dict {unit: DataFrame[Attendee Name, Attendee Email, Attendee Phone, Tgl Kunjungan (Semua)]}
+    - Membersihkan email & phone
+    - Mengabaikan ticket promosi
+    - Menggabungkan tanggal kunjungan (unik & urut) per (email, phone)
+    """
+
     df = df.copy()
 
-    # Bersihkan kontak
-    df["Attendee Email"] = df["Attendee Email"].apply(clean_email)
-    df["Attendee Phone"] = df["Attendee Phone"].apply(clean_phone)
+    # Normalisasi nama unit jika perlu
+    if unit_col in df.columns:
+        df[unit_col] = df[unit_col].replace(UNIT_MAP)
 
-    # Pastikan kolom tanggal ada & datetime
+    # Bersihkan kontak
+    if "Attendee Email" in df.columns:
+        df["Attendee Email"] = df["Attendee Email"].apply(clean_email)
+    if "Attendee Phone" in df.columns:
+        df["Attendee Phone"] = df["Attendee Phone"].apply(clean_phone)
+
+    # Pastikan kolom tanggal
     if visit_col in df.columns and not pd.api.types.is_datetime64_any_dtype(df[visit_col]):
         df[visit_col] = pd.to_datetime(df[visit_col], errors="coerce")
 
-    def _join_dates(s, fmt):
-        # ambil date saja, unik & urut, gabung pakai ";"
+    def _join_dates(s: pd.Series, fmt: str) -> str:
         dates = pd.to_datetime(s, errors="coerce").dropna().dt.date
         if len(dates) == 0:
             return ""
@@ -101,33 +126,40 @@ def extract_unique_customers(
         return ";".join(d.strftime(fmt) for d in dates)
 
     results = {}
+    if unit_col not in df.columns:
+        return results  # tidak ada kolom unit
+
+    unique_units = set(df[unit_col].dropna().unique().tolist())
     for unit in UNITS:
-        if unit in df[unit_col].unique():
-            sub = df[
-                (df[unit_col] == unit)
-                & (~df[ticket_col].isin(promo_tickets))
-            ][["Attendee Name", "Attendee Email", "Attendee Phone", visit_col]].copy()
+        if unit not in unique_units:
+            continue
 
-            # buang baris tanpa email/phone
-            sub = sub.dropna(subset=["Attendee Email", "Attendee Phone"])
+        # Filter baris untuk unit ini & bukan tiket promosi
+        sub = df[
+            (df[unit_col] == unit) &
+            (~df[ticket_col].isin(promo_tickets))
+        ][["Attendee Name", "Attendee Email", "Attendee Phone", visit_col]].copy()
 
-            # group by identitas, ambil nama terakhir (atau bisa "first"), gabung tanggal kunjungan
-            grouped = (
-                sub.sort_values(visit_col)
-                   .groupby(["Attendee Email", "Attendee Phone"], as_index=False)
-                   .agg({
-                       "Attendee Name": "last",
-                       visit_col: lambda s: _join_dates(s, visit_fmt),
-                   })
-            )
+        # Buang baris tanpa kedua kontak (lebih longgar: minimal salah satu ada → gunakan how="all")
+        sub = sub.dropna(subset=["Attendee Email", "Attendee Phone"], how="all")
 
-            # rapikan kolom & nama kolom tanggal
-            grouped = grouped.rename(columns={visit_col: "Tgl Kunjungan (Semua)"})
-            grouped = grouped[["Attendee Name", "Attendee Email", "Attendee Phone", "Tgl Kunjungan (Semua)"]]
+        if sub.empty:
+            results[unit] = sub
+            continue
 
-            results[unit] = grouped.reset_index(drop=True)
+        # Group: gabungkan tanggal kunjungan, ambil nama terakhir
+        grouped = (
+            sub.sort_values(visit_col)
+               .groupby(["Attendee Email", "Attendee Phone"], as_index=False, dropna=False)
+               .agg({
+                   "Attendee Name": "last",
+                   visit_col: lambda s: _join_dates(s, visit_fmt),
+               })
+        )
+
+        grouped = grouped.rename(columns={visit_col: "Tgl Kunjungan (Semua)"})
+        grouped = grouped[["Attendee Name", "Attendee Email", "Attendee Phone", "Tgl Kunjungan (Semua)"]]
+
+        results[unit] = grouped.reset_index(drop=True)
 
     return results
-
-
-
