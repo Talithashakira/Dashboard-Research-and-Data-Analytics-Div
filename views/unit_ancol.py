@@ -6,8 +6,8 @@ from modules.transaction_visualization import (
     show_trend_purchased,
     show_top5_payment,
     show_top5_purchased,
-    show_heatmap_calendar,
     show_customer_segmentation,
+    show_rfm_segmentation,
 )
 from utils.ui_utils import render_aggrid, download_csv_button
 
@@ -48,8 +48,8 @@ def show():
     # 🔹 Customer Segmentation
     show_customer_segmentation(df_filtered)
 
-    # 🔹 Heatmap
-    st.altair_chart(show_heatmap_calendar(df_filtered), use_container_width=True)
+    # 🔹 RFM Segmentation
+    show_rfm_segmentation(df_filtered)  
 
     # AgGrid
     render_aggrid(df_filtered)

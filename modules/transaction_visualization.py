@@ -7,7 +7,7 @@ from ui.components import branded_metric, custom_metric
 from utils.helpers import format_rupiah
 
 def show_summary_cards(df):
-    col1, col2, col3 = st.columns(3)
+    col1, col2 = st.columns(2)
 
     # 🎟️ Total Ticket Purchased
     with col1:
@@ -18,21 +18,6 @@ def show_summary_cards(df):
     with col2:
         total_payment = df["Total Payment"].sum()
         custom_metric("💰 Total Payment", f"Rp {total_payment:,.0f}")
-
-    # 📈 Daily Growth (%)
-    with col3:
-        df["Tgl Transaksi"] = pd.to_datetime(df["Tgl Transaksi"])
-        daily_sales = df.groupby("Tgl Transaksi")["Ticket Purchased"].sum().sort_index()
-
-        daily_growth = daily_sales.pct_change() * 100
-
-        avg_growth = daily_growth.dropna().mean()
-
-        if pd.isna(avg_growth):
-            avg_growth = 0
-
-        custom_metric("📈 Rata-rata Daily Growth", f"{avg_growth:.2f} %")
-
 
 # =====================
 # Trend Charts
@@ -177,7 +162,9 @@ def show_top5_purchased(df_filtered):
         .properties(width=300, height=400, title="🏆 Top 5 Ticket by Purchased")
     )
 
-
+# =====================
+# Heatmap Calendar
+# =====================
 
 def show_heatmap_calendar(df_filtered: pd.DataFrame):
     import altair as alt
@@ -300,3 +287,90 @@ def show_customer_segmentation(df_filtered):
         )
         st.markdown("###### **Daftar Repeat Buyers**")
         st.dataframe(repeat_table, use_container_width=True)
+
+# =====================
+# RFM Segmentation
+# =====================
+
+def show_rfm_segmentation(df_filtered):
+    st.subheader("📊 RFM Segmentation")
+
+    # 🟣 Daftar tiket promo (langsung di dalam fungsi)
+    promo_tickets = [
+        "Tiket Free Kendaraan Listrik - Mobil",
+        "Tiket Free Kendaraan Listrik - Motor"
+    ]
+
+    # 0️⃣ Buang customer yang hanya membeli tiket promo
+    ticket_col = "Ticket Detail"
+    id_col = "Attendee Email"
+
+    if ticket_col in df_filtered.columns and id_col in df_filtered.columns:
+        # Ambil semua customer yang punya transaksi NON-promo
+        non_promo_customers = (
+            df_filtered.loc[~df_filtered[ticket_col].isin(promo_tickets), id_col]
+            .dropna()
+            .unique()
+        )
+        # Filter dataset agar hanya customer yang punya transaksi non-promo yang tersisa
+        df_filtered = df_filtered[df_filtered[id_col].isin(non_promo_customers)].copy()
+
+    # 1️⃣ Pastikan kolom tanggal dalam format datetime
+    df_filtered["Tgl Transaksi"] = pd.to_datetime(df_filtered["Tgl Transaksi"])
+
+    # 2️⃣ Tentukan tanggal acuan (hari setelah transaksi terakhir)
+    today = df_filtered["Tgl Transaksi"].max() + pd.Timedelta(days=1)
+
+    # 3️⃣ Hitung nilai RFM untuk setiap customer
+    rfm = df_filtered.groupby("Attendee Email").agg({
+        "Tgl Transaksi": lambda x: (today - x.max()).days,  # Recency
+        "No Transaksi": "nunique",                         # Frequency
+        "Total Payment": "sum"                             # Monetary
+    }).reset_index()
+
+    rfm.columns = ["Attendee Email", "Recency", "Frequency", "Monetary"]
+
+    # 4️⃣ Buat skor R, F, M (kuantil 1–5)
+    rfm["R_Score"] = pd.qcut(rfm["Recency"], 5, labels=[5,4,3,2,1]).astype(int)
+    rfm["F_Score"] = pd.qcut(rfm["Frequency"].rank(method="first"), 5, labels=[1,2,3,4,5]).astype(int)
+    rfm["M_Score"] = pd.qcut(rfm["Monetary"].rank(method="first"), 5, labels=[1,2,3,4,5]).astype(int)
+
+    # 5️⃣ Hitung total skor dan segmentasi
+    rfm["RFM_Score"] = rfm["R_Score"] + rfm["F_Score"] + rfm["M_Score"]
+
+    def segment(row):
+        if row["RFM_Score"] >= 12:
+            return "🧡 Loyal Customer"
+        elif row["RFM_Score"] >= 9:
+            return "💛 Potential Loyalist"
+        elif row["RFM_Score"] >= 6:
+            return "💤 Needs Attention"
+        else:
+            return "💔 Lost"
+
+    rfm["Segment"] = rfm.apply(segment, axis=1)
+
+    # 6️⃣ Tampilkan ringkasan metrik
+    total_customers = rfm.shape[0]
+    loyal_count = rfm[rfm["Segment"] == "🧡 Loyal Customer"].shape[0]
+    lost_count = rfm[rfm["Segment"] == "💔 Lost"].shape[0]
+
+    col1, col2, col3 = st.columns(3)
+    with col1: custom_metric("👤 Total Customers", f"{total_customers:,}")
+    with col2: custom_metric("🧡 Loyal Customers", f"{loyal_count:,}")
+    with col3: custom_metric("💔 Lost Customers", f"{lost_count:,}")
+
+    # 7️⃣ Pie chart distribusi segment
+    segment_counts = rfm["Segment"].value_counts().reset_index()
+    segment_counts.columns = ["Segment", "Count"]
+    chart = alt.Chart(segment_counts).mark_arc().encode(
+        theta="Count:Q",
+        color="Segment:N",
+        tooltip=["Segment", "Count"]
+    )
+    st.markdown("###### **Distribusi Segmentasi Pelanggan (RFM)**")
+    st.altair_chart(chart, use_container_width=True)
+
+    # 8️⃣ Tampilkan tabel
+    st.markdown("###### **Detail Skor RFM per Customer**")
+    st.dataframe(rfm.sort_values("RFM_Score", ascending=False), use_container_width=True)

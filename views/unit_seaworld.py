@@ -25,14 +25,17 @@ def show():
     mask = (df_unit["Tgl Transaksi"] >= pd.to_datetime(start_date)) & (df_unit["Tgl Transaksi"] <= pd.to_datetime(end_date))
     df_filtered = df_unit.loc[mask]
 
+    # Summary cards
     show_summary_cards(df_filtered)
 
+    # 🔹 Trend vs Top 5 Payment
     col1, col2 = st.columns([2, 1])
     with col1:
         st.altair_chart(show_trend_payment(df_filtered), use_container_width=True)
     with col2:
         st.altair_chart(show_top5_payment(df_filtered), use_container_width=True)
 
+    # 🔹 Trend vs Top 5 Purchased
     col1, col2 = st.columns([2, 1])
     with col1:
         st.altair_chart(show_trend_purchased(df_filtered), use_container_width=True)
@@ -42,7 +45,11 @@ def show():
     # 🔹 Customer Segmentation
     show_customer_segmentation(df_filtered)
 
-    st.altair_chart(show_heatmap_calendar(df_filtered), use_container_width=True)
+    # 🔹 RFM Segmentation
+    show_rfm_segmentation(df_filtered)  
 
+    # AgGrid
     render_aggrid(df_filtered)
-    download_csv_button(df_filtered, filename="transaksi_seaworld.csv")
+
+    # Download button
+    download_csv_button(df_filtered, filename="transaksi_ancol.csv")

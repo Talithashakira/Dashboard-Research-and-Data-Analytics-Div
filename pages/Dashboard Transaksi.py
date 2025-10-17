@@ -13,6 +13,7 @@ from modules.transaction_visualization import (
     show_heatmap_calendar,
     show_total_payment_per_unit,
     show_customer_segmentation,
+    show_rfm_segmentation,
 )
 from utils.ui_utils import render_aggrid, download_csv_button
 from utils.auth_utils import check_login
@@ -75,6 +76,9 @@ if uploaded_file is not None:
 
         # 🔹 Customer Segmentation
         show_customer_segmentation(df_filtered)
+
+        # 🔹 RFM Segmentation
+        show_rfm_segmentation(df_filtered)  
 
         # 🔹 Heatmap Kunjungan per Hari
         st.altair_chart(show_heatmap_calendar(df_filtered), use_container_width=True)
